@@ -1,0 +1,32 @@
+name: Update World Cup ICS Calendar
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Executes exactly every 6 hours (at minute 0 of hours 0, 6, 12, and 18)
+  workflow_dispatch: # Still allows you to trigger it manually anytime
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-python-version: '3.x'
+
+      - name: Run Calendar Generator
+        run: python generate_ics.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
+          git add world-cup.ics
+          git diff-index --quiet HEAD || git commit -m "Automated schedule sync update"
+          git push
