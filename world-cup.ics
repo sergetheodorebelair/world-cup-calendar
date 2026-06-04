@@ -1,0 +1,9 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//YourName//World Cup Live Sync//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:🏆 World Cup 2026 Live Schedule
+X-WR-TIMEZONE:UTC
+X-WR-CALDESC:World Cup matches with automatically adjusting kickoff times and flags.
+END:VCALENDAR
