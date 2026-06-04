@@ -3,7 +3,7 @@ name: Update World Cup ICS Calendar
 on:
   schedule:
     - cron: '0 */6 * * *' # Executes exactly every 6 hours
-  workflow_dispatch: # Allows you to manually click "Run workflow" in GitHub Actions
+  workflow_dispatch: # Allows manual triggers within the GitHub interface
 
 permissions:
   contents: write
@@ -24,6 +24,8 @@ jobs:
         run: pip install requests
 
       - name: Run Calendar Generator
+        env:
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
         run: python generate_ics.py
 
       - name: Commit and Push Changes
