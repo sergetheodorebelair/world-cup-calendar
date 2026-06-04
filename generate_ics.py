@@ -19,34 +19,24 @@ COUNTRY_MAP = {
 }
 
 
-
 def get_flag(team_name):
-    if not team_name:
+    if not team_name or team_name == "TBD":
         return "🏳️"
     code = COUNTRY_MAP.get(team_name, "")
     if not code:
-        return "🏳️"  # Standard placeholder for undecided knockout lines (e.g. "Winner Group A")
+        return "🏳️"  # Standard placeholder for undecided knockout lines
     if code == "GB-ENG": return "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
     if code == "GB-SCT": return "🏴󠁧󠁢󠁳󠁣󠁴󠁿"
     return "".join(chr(127397 + ord(c)) for c in code.upper())
 
-def get_short_code(team_name):
-    if not team_name:
-        return "TBD"
-    return COUNTRY_MAP.get(team_name, "??").split("-")[-1].upper()
-
 def fetch_official_fixtures():
-    # Official FIFA World Cup competition code is 'WC'
     url = "https://api.football-data.org/v4/competitions/WC/matches"
-    
-    # Safely extract the secret token from the secure environment injection
     api_token = os.environ.get("FOOTBALL_API_KEY")
     if not api_token:
         print("Error: Missing secure FOOTBALL_API_KEY environment configuration.")
         return None
         
     headers = {"X-Auth-Token": api_token}
-    
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
@@ -56,7 +46,6 @@ def fetch_official_fixtures():
         return None
 
 def parse_iso_to_ics(iso_str):
-    # Converts standard '2026-06-11T21:00:00Z' into calendar format '20260611T210000Z'
     return iso_str.replace("-", "").replace(":", "")
 
 def generate_calendar():
@@ -79,21 +68,19 @@ def generate_calendar():
     ]
 
     for match in data["matches"]:
-        # Extract parsing items cleanly following official documentation guidelines
         home_team = match.get("homeTeam", {}) or {}
         away_team = match.get("awayTeam", {}) or {}
         
         home = home_team.get("name", "TBD")
         away = away_team.get("name", "TBD")
         
-        # Pull standard kickoff parameters
         utc_date = match.get("utcDate")
         if not utc_date:
             continue
             
         dtstart = parse_iso_to_ics(utc_date)
         
-        # Add 2-hour window duration block
+        # Add standard 2-hour window duration block
         start_obj = datetime.datetime.strptime(dtstart, "%Y%m%dT%H%M%SZ")
         dtend = (start_obj + datetime.timedelta(hours=2)).strftime("%Y%m%dT%H%M%SZ")
         
@@ -103,10 +90,9 @@ def generate_calendar():
         
         h_flag = get_flag(home)
         a_flag = get_flag(away)
-        h_code = get_short_code(home)
-        a_code = get_short_code(away)
 
-        summary = f"{h_flag} {h_code} vs {a_code} {a_flag} | {stage}{group_label}"
+        # Uses full names for crisp presentation layout
+        summary = f"{h_flag} {home} vs {away} {a_flag} | {stage}{group_label}"
         description = f"Matchup: {home} vs {away}\\nStage: {stage}{group_label}\\nMatch Day: {match.get('matchday', 'N/A')}"
         
         lines.extend([
@@ -124,7 +110,7 @@ def generate_calendar():
 
     with open("world-cup.ics", "w", encoding="utf-8") as file:
         file.write("\n".join(lines))
-    print(f"Success! Official .ics calendar generated with {len(data['matches'])} active matches.")
+    print(f"Success! Official .ics calendar generated with {len(data['matches'])} active matches using full text names.")
 
 if __name__ == "__main__":
     generate_calendar()
