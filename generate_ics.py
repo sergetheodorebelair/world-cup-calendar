@@ -2,12 +2,12 @@ import os
 import datetime
 import requests
 
-# Dictionary mapping official names to ISO two-letter codes for perfect flags
+# Maps official FIFA data team names to ISO codes for the flag generator
 COUNTRY_MAP = {
     "Mexico": "MX", "South Africa": "ZA", "South Korea": "KR", "Czech Republic": "CZ",
-    "Czechia": "CZ", "Canada": "CA", "Bosnia and Herzegovina": "BA", "United States": "US",
-    "USA": "US", "Paraguay": "PY", "Haiti": "HT", "Scotland": "GB-SCT", "Morocco": "MA",
-    "Australia": "AU", "Türkiye": "TR", "Turkey": "TR", "Brazil": "BR", "Qatar": "QA",
+    "Canada": "CA", "Bosnia and Herzegovina": "BA", "United States": "US", "USA": "US",
+    "Paraguay": "PY", "Haiti": "HT", "Scotland": "GB-SCT", "Morocco": "MA",
+    "Australia": "AU", "Turkey": "TR", "Brazil": "BR", "Qatar": "QA",
     "Switzerland": "CH", "Germany": "DE", "Curaçao": "CW", "Netherlands": "NL",
     "Japan": "JP", "Ivory Coast": "CI", "Ecuador": "EC", "Sweden": "SE", "Tunisia": "TN",
     "Saudi Arabia": "SA", "Uruguay": "UY", "Spain": "ES", "Cape Verde": "CV", "Iran": "IR",
@@ -17,62 +17,49 @@ COUNTRY_MAP = {
     "Ghana": "GH", "Panama": "PA", "Uzbekistan": "UZ", "Colombia": "CO"
 }
 
-def clean_team_name(name):
-    if not name:
-        return "TBD"
-    # Normalizing potential string variation outputs from the live mirror
-    name = str(name)
-    for extra in [" national football team", " national soccer team", " men's national soccer team"]:
-        name = name.replace(extra, "")
-    return name.strip()
-
-def get_flag(clean_name):
-    code = COUNTRY_MAP.get(clean_name, "")
+def get_flag(team_name):
+    if not team_name:
+        return "🏳️"
+    code = COUNTRY_MAP.get(team_name, "")
     if not code:
-        return "🏳️" 
-    if code == "GB-ENG": return "🏴%A0%BC%A7%A1%A0%BC%A7%A7%A0%BC%A7%A5%A0%BC%A7%A7%A0%BC%A7%A2%A0%BC%A7%A7" # Explicit unicode sub-properties for UK flags
-    if code == "GB-SCT": return "🏴%A0%BC%A7%A1%A0%BC%A7%A7%A0%BC%A7%A3%A0%BC%A7%A7%A0%BC%A7%A4%A0%BC%A7%A7"
+        return "🏳️"  # Standard placeholder for undecided knockout lines (e.g. "Winner Group A")
+    if code == "GB-ENG": return "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
+    if code == "GB-SCT": return "🏴󠁧󠁢󠁳󠁣󠁴󠁿"
     return "".join(chr(127397 + ord(c)) for c in code.upper())
 
-def get_short_code(clean_name):
-    full_code = COUNTRY_MAP.get(clean_name, "??")
-    return full_code.split("-")[-1]
+def get_short_code(team_name):
+    if not team_name:
+        return "TBD"
+    return COUNTRY_MAP.get(team_name, "??").split("-")[-1].upper()
 
-def fetch_live_fixtures():
-    url = "https://worldcup26.ir/get/games"
+def fetch_official_fixtures():
+    # Official FIFA World Cup competition code is 'WC'
+    url = "https://api.football-data.org/v4/competitions/WC/matches"
+    
+    # Safely extract the secret token from the secure environment injection
+    api_token = os.environ.get("FOOTBALL_API_KEY")
+    if not api_token:
+        print("Error: Missing secure FOOTBALL_API_KEY environment configuration.")
+        return None
+        
+    headers = {"X-Auth-Token": api_token}
+    
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        data = response.json()
-        # Ensure array structure format tracking variations
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            return data.get("games", data.get("matches", data.get("data", [])))
-        return []
+        return response.json()
     except Exception as e:
-        print(f"API Request failed: {e}. Pulling backup live mock fallback layer...")
-        fallback_url = "https://raw.githubusercontent.com/rezarahiminia/worldcup2026/main/data/mock.json"
-        try:
-            res = requests.get(fallback_url, timeout=15)
-            data = res.json()
-            return data if isinstance(data, list) else data.get("games", [])
-        except Exception as err:
-            print(f"Critical error: Fallback layer also failed: {err}")
-            return []
+        print(f"Critical error pulling official API payload: {e}")
+        return None
 
-def parse_iso_to_ics_time(iso_str):
-    if not iso_str:
-        return datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-    cleaned = iso_str.replace("-", "").replace(":", "").split(".")[0].split("+")[0]
-    if not cleaned.endswith("Z"):
-        cleaned += "Z"
-    return cleaned
+def parse_iso_to_ics(iso_str):
+    # Converts standard '2026-06-11T21:00:00Z' into calendar format '20260611T210000Z'
+    return iso_str.replace("-", "").replace(":", "")
 
 def generate_calendar():
-    matches = fetch_live_fixtures()
-    if not matches:
-        print("Empty dataset fetched. Skipping sync update rewrite.")
+    data = fetch_official_fixtures()
+    if not data or "matches" not in data:
+        print("Invalid data layout returned from endpoint. Retaining previous file state.")
         return
 
     now_utc = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -80,64 +67,53 @@ def generate_calendar():
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//YourName//World Cup Live Sync//EN",
+        "PRODID:-//YourName//World Cup Official Sync//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        "X-WR-CALNAME:🏆 World Cup 2026 Live Schedule",
+        "X-WR-CALNAME:🏆 FIFA World Cup 2026 Schedule",
         "X-WR-TIMEZONE:UTC",
-        "X-WR-CALDESC:World Cup matches with auto-adjusting kickoff times and flag emojis."
+        "X-WR-CALDESC:Official World Cup fixtures synced straight from live tournament data."
     ]
 
-    for idx, match in enumerate(matches):
-        if not isinstance(match, dict):
-            continue
-
-        # Safe dictionary property extraction mapping variations used by the REST schema
-        home_data = match.get("homeTeam", match.get("home", "TBD"))
-        away_data = match.get("awayTeam", match.get("away", "TBD"))
+    for match in data["matches"]:
+        # Extract parsing items cleanly following official documentation guidelines
+        home_team = match.get("homeTeam", {}) or {}
+        away_team = match.get("awayTeam", {}) or {}
         
-        home = clean_team_name(home_data if isinstance(home_data, str) else home_data.get("name", home_data.get("title", "TBD")))
-        away = clean_team_name(away_data if isinstance(away_data, str) else away_data.get("name", away_data.get("title", "TBD")))
+        home = home_team.get("name", "TBD")
+        away = away_team.get("name", "TBD")
         
-        start_raw = match.get("startTimeUserTimezone", match.get("utcDate", match.get("date", match.get("start", ""))))
-        if not start_raw:
+        # Pull standard kickoff parameters
+        utc_date = match.get("utcDate")
+        if not utc_date:
             continue
             
-        dtstart = parse_iso_to_ics_time(start_raw)
+        dtstart = parse_iso_to_ics(utc_date)
         
-        try:
-            start_obj = datetime.datetime.strptime(dtstart, "%Y%m%dT%H%M%SZ")
-        except ValueError:
-            # Fallback format protection parsing string patterns
-            try:
-                start_obj = datetime.datetime.strptime(dtstart, "%Y-%m-%d %H:%M:%S")
-                dtstart = start_obj.strftime("%Y%m%dT%H%M%SZ")
-            except:
-                continue
-                
+        # Add 2-hour window duration block
+        start_obj = datetime.datetime.strptime(dtstart, "%Y%m%dT%H%M%SZ")
         dtend = (start_obj + datetime.timedelta(hours=2)).strftime("%Y%m%dT%H%M%SZ")
         
-        venue = match.get("venue", match.get("stadium", "TBD Venue"))
-        group = match.get("groupName", match.get("group", "Tournament Match"))
-        match_id = match.get("id", match.get("_id", f"gen-idx-{idx}"))
-
+        stage = match.get("stage", "Tournament Match").replace("_", " ").title()
+        group_info = match.get("group", "")
+        group_label = f" ({group_info.replace('_', ' ')})" if group_info else ""
+        
         h_flag = get_flag(home)
         a_flag = get_flag(away)
         h_code = get_short_code(home)
         a_code = get_short_code(away)
 
-        summary = f"{h_flag} {h_code} vs {a_code} {a_flag} | {group}"
-        description = f"Tournament: FIFA World Cup 2026\\nMatchup: {home} vs {away}\\nStage: {group}\\nVenue: {venue}"
+        summary = f"{h_flag} {h_code} vs {a_code} {a_flag} | {stage}{group_label}"
+        description = f"Matchup: {home} vs {away}\\nStage: {stage}{group_label}\\nMatch Day: {match.get('matchday', 'N/A')}"
         
         lines.extend([
             "BEGIN:VEVENT",
-            f"UID:wc2026-{match_id}@yourdomain.com",
+            f"UID:wc2026-{match['id']}@football-data.org",
             f"DTSTAMP:{now_utc}",
             f"DTSTART:{dtstart}",
             f"DTEND:{dtend}",
             f"SUMMARY:{summary}",
             f"DESCRIPTION:{description}",
-            f"LOCATION:{venue}",
             "END:VEVENT"
         ])
 
@@ -145,7 +121,7 @@ def generate_calendar():
 
     with open("world-cup.ics", "w", encoding="utf-8") as file:
         file.write("\n".join(lines))
-    print(f"Success: world-cup.ics generated cleanly with {len(lines) // 10} fixture entries.")
+    print(f"Success! Official .ics calendar generated with {len(data['matches'])} active matches.")
 
 if __name__ == "__main__":
     generate_calendar()
