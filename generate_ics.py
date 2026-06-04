@@ -14,8 +14,11 @@ COUNTRY_MAP = {
     "New Zealand": "NZ", "Belgium": "BE", "Egypt": "EG", "France": "FR", "Senegal": "SN",
     "Iraq": "IQ", "Norway": "NO", "Argentina": "AR", "Algeria": "DZ", "Austria": "AT",
     "Jordan": "JO", "Portugal": "PT", "DR Congo": "CD", "England": "GB-ENG", "Croatia": "HR",
-    "Ghana": "GH", "Panama": "PA", "Uzbekistan": "UZ", "Colombia": "CO"
+    "Ghana": "GH", "Panama": "PA", "Uzbekistan": "UZ", "Colombia": "CO", "Czechia": "CZ", 
+    "Bosnia-Herzegovina": "BA", "Congo DR": "CD", "Cape Verde Islands": "CV", "Turkey": "TR",
 }
+
+
 
 def get_flag(team_name):
     if not team_name:
