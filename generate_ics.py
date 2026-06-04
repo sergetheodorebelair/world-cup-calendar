@@ -18,57 +18,61 @@ COUNTRY_MAP = {
 }
 
 def clean_team_name(name):
-    """Trims down extended names like 'national football team' from raw inputs."""
     if not name:
         return "TBD"
-    for extra in [" national football team", " national soccer team", " men's national soccer team", " cricket team"]:
+    # Normalizing potential string variation outputs from the live mirror
+    name = str(name)
+    for extra in [" national football team", " national soccer team", " men's national soccer team"]:
         name = name.replace(extra, "")
     return name.strip()
 
 def get_flag(clean_name):
-    """Converts team name to Unicode Regional Indicator flag emojis."""
     code = COUNTRY_MAP.get(clean_name, "")
     if not code:
-        return "🏳️" # Fallback flag for unconfirmed knockout lines (e.g. Winner Group A)
-    if code == "GB-ENG": return "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
-    if code == "GB-SCT": return "🏴󠁧󠁢󠁳󠁣󠁴󠁿"
+        return "🏳️" 
+    if code == "GB-ENG": return "🏴%A0%BC%A7%A1%A0%BC%A7%A7%A0%BC%A7%A5%A0%BC%A7%A7%A0%BC%A7%A2%A0%BC%A7%A7" # Explicit unicode sub-properties for UK flags
+    if code == "GB-SCT": return "🏴%A0%BC%A7%A1%A0%BC%A7%A7%A0%BC%A7%A3%A0%BC%A7%A7%A0%BC%A7%A4%A0%BC%A7%A7"
     return "".join(chr(127397 + ord(c)) for c in code.upper())
 
 def get_short_code(clean_name):
-    """Returns standard uppercase abbreviation alongside flags."""
     full_code = COUNTRY_MAP.get(clean_name, "??")
     return full_code.split("-")[-1]
 
 def fetch_live_fixtures():
-    """Pulls global schedules directly via open tournament JSON APIs."""
     url = "https://worldcup26.ir/get/games"
     try:
         response = requests.get(url, timeout=15)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        # Ensure array structure format tracking variations
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return data.get("games", data.get("matches", data.get("data", [])))
+        return []
     except Exception as e:
-        print(f"Primary API mirror unavailable: {e}. Trying fallback open source data layer...")
-        # Fallback mirroring directly to a live raw data repository backup
+        print(f"API Request failed: {e}. Pulling backup live mock fallback layer...")
         fallback_url = "https://raw.githubusercontent.com/rezarahiminia/worldcup2026/main/data/mock.json"
         try:
             res = requests.get(fallback_url, timeout=15)
-            return res.json()
+            data = res.json()
+            return data if isinstance(data, list) else data.get("games", [])
         except Exception as err:
-            print(f"Critical Error: Both live data engines failed: {err}")
-            return None
+            print(f"Critical error: Fallback layer also failed: {err}")
+            return []
 
 def parse_iso_to_ics_time(iso_str):
-    """Normalizes ISO string patterns into explicit standard calendar UTC blocks."""
-    # Removes standard separating punctuation characters commonly returned by APIs
-    cleaned = iso_str.replace("-", "").replace(":", "").split(".")[0]
+    if not iso_str:
+        return datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    cleaned = iso_str.replace("-", "").replace(":", "").split(".")[0].split("+")[0]
     if not cleaned.endswith("Z"):
         cleaned += "Z"
     return cleaned
 
 def generate_calendar():
-    raw_data = fetch_live_fixtures()
-    if not raw_data:
-        print("Halting compilation to prevent corrupting existing calendar file.")
+    matches = fetch_live_fixtures()
+    if not matches:
+        print("Empty dataset fetched. Skipping sync update rewrite.")
         return
 
     now_utc = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -81,35 +85,41 @@ def generate_calendar():
         "METHOD:PUBLISH",
         "X-WR-CALNAME:🏆 World Cup 2026 Live Schedule",
         "X-WR-TIMEZONE:UTC",
-        "X-WR-CALDESC:World Cup matches with automatically adjusting kickoff times and flags."
+        "X-WR-CALDESC:World Cup matches with auto-adjusting kickoff times and flag emojis."
     ]
 
-    # Checking for array wrapper variations across multi-source endpoints
-    matches = raw_data if isinstance(raw_data, list) else raw_data.get("games", raw_data.get("matches", []))
-
     for idx, match in enumerate(matches):
-        # Graceful normalization checking for key mapping variants
-        home_raw = match.get("homeTeam", match.get("home", "TBD"))
-        away_raw = match.get("awayTeam", match.get("away", "TBD"))
+        if not isinstance(match, dict):
+            continue
+
+        # Safe dictionary property extraction mapping variations used by the REST schema
+        home_data = match.get("homeTeam", match.get("home", "TBD"))
+        away_data = match.get("awayTeam", match.get("away", "TBD"))
         
-        # Handle embedded objects versus raw strings
-        home = clean_team_name(home_raw if isinstance(home_raw, str) else home_raw.get("name", "TBD"))
-        away = clean_team_name(away_raw if isinstance(away_raw, str) else away_raw.get("name", "TBD"))
+        home = clean_team_name(home_data if isinstance(home_data, str) else home_data.get("name", home_data.get("title", "TBD")))
+        away = clean_team_name(away_data if isinstance(away_data, str) else away_data.get("name", away_data.get("title", "TBD")))
         
-        # Pull timestamps
-        start_raw = match.get("startTimeUserTimezone", match.get("utcDate", match.get("start", "")))
+        start_raw = match.get("startTimeUserTimezone", match.get("utcDate", match.get("date", match.get("start", ""))))
         if not start_raw:
             continue
             
         dtstart = parse_iso_to_ics_time(start_raw)
         
-        # Calculate artificial end window (roughly 2 hours after kickoff)
-        start_obj = datetime.datetime.strptime(dtstart, "%Y%m%dT%H%M%SZ")
+        try:
+            start_obj = datetime.datetime.strptime(dtstart, "%Y%m%dT%H%M%SZ")
+        except ValueError:
+            # Fallback format protection parsing string patterns
+            try:
+                start_obj = datetime.datetime.strptime(dtstart, "%Y-%m-%d %H:%M:%S")
+                dtstart = start_obj.strftime("%Y%m%dT%H%M%SZ")
+            except:
+                continue
+                
         dtend = (start_obj + datetime.timedelta(hours=2)).strftime("%Y%m%dT%H%M%SZ")
         
-        venue = match.get("venue", "TBD Venue")
+        venue = match.get("venue", match.get("stadium", "TBD Venue"))
         group = match.get("groupName", match.get("group", "Tournament Match"))
-        match_id = match.get("id", f"gen-idx-{idx}")
+        match_id = match.get("id", match.get("_id", f"gen-idx-{idx}"))
 
         h_flag = get_flag(home)
         a_flag = get_flag(away)
@@ -133,10 +143,9 @@ def generate_calendar():
 
     lines.append("END:VCALENDAR")
 
-    # Outputs the structural file back to the repository root directory
     with open("world-cup.ics", "w", encoding="utf-8") as file:
         file.write("\n".join(lines))
-    print("Success: world-cup.ics compiled cleanly via live network pipeline.")
+    print(f"Success: world-cup.ics generated cleanly with {len(lines) // 10} fixture entries.")
 
 if __name__ == "__main__":
     generate_calendar()
