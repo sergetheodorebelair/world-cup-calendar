@@ -1,7 +1,3 @@
-<style>
-  h1:first-of-type { display: none !important; }
-</style>
-
 # 🏆 FIFA World Cup 2026 Calendar Sync
 
 Automated, zero-maintenance, live calendar feed for the FIFA World Cup 2026.
