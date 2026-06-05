@@ -61,5 +61,5 @@ Right-click the button below and select **"Copy link address"**:
 
 ---
 <p align="center" style="font-size: 13px; color: #444;">
-  Engineered by <img src="pago transparent.png" alt="pago" style="height: 18px; width: 55px; object-fit: cover; object-position: center; vertical-align: middle; margin-bottom: 2px;"/> tech &bull; Powered by football-data.org live tournament sync.
+  Engineered by <img src="pago transparent.png" alt="pago" height="30" style="vertical-align: middle; margin-top: -4px;"/> tech &bull; Powered by football-data.org live tournament sync.
 </p>
