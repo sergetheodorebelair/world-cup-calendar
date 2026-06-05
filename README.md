@@ -3,11 +3,9 @@
 Automated, zero-maintenance, live calendar feed for the FIFA World Cup 2026.
 
 ### 📋 World Cup Checklist
-- [ ] ⚽ **Watch The Socceritos - The Movie**  
-  👉 [Watch on YouTube](https://youtu.be/4iV8UzOnbrc?si=s2tjakziIZs61TR1)
-- [ ] 🔥 **Watch the Nike Commercial**  
-  👉 [Watch on YouTube](https://www.youtube.com/watch?v=IyZ1WIua_1s)
-- [ ] 📅 **Sign up for the calendar** (Instructions below!)
+* ⚽ **Watch The Socceritos - The Movie** 👉 [Watch on YouTube](https://youtu.be/4iV8UzOnbrc?si=s2tjakziIZs61TR1)
+* 🔥 **Watch the Nike Commercial** 👉 [Watch on YouTube](https://www.youtube.com/watch?v=IyZ1WIua_1s)
+* 📅 **Sign up for the calendar** (Instructions below!)
 
 ---
 
@@ -63,5 +61,5 @@ Right-click the button below and select **"Copy link address"**:
 
 ---
 <p align="center" style="font-size: 13px; color: #444;">
-  Engineered by <img src="pago transparent.png" alt="pago" height="24" style="vertical-align: middle; margin-top: -4px;"/> tech &bull; Powered by football-data.org live tournament sync.
+  Engineered by <img src="pago transparent.png" alt="pago" style="height: 18px; width: 55px; object-fit: cover; object-position: center; vertical-align: middle; margin-bottom: 2px;"/> tech &bull; Powered by football-data.org live tournament sync.
 </p>
