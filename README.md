@@ -26,15 +26,11 @@ If you just want a one-time static snapshot of the matches to import manually in
 Instead of a one-time download, **subscribing** ensures your calendar automatically syncs match details, live time-slot updates, group placements, and knockout brackets completely on autopilot.
 
 ### Copy Subscription Link
-Right-click the button below and select **"Copy link address"**:
 
-<p align="center">
-  <a href="https://sergetheodorebelair.github.io/world-cup-calendar/world-cup.ics">
-    <img src="https://img.shields.io/badge/Copy_Subscription_URL-https%3A%2F%2F...-2ea44f?style=for-the-badge&logo=git&logoColor=white" alt="Subscription URL">
-  </a>
-</p>
+Copy the full URL path below to add it as a subscription layer in your calendar application:
 
-`https://sergetheodorebelair.github.io/world-cup-calendar/world-cup.ics`
+```text
+[https://sergetheodorebelair.github.io/world-cup-calendar/world-cup.ics](https://sergetheodorebelair.github.io/world-cup-calendar/world-cup.ics)
 
 ---
 
