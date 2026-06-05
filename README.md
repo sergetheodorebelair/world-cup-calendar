@@ -31,7 +31,7 @@ Copy the full URL path below to add it as a subscription layer in your calendar 
 
 ```text
 https://sergetheodorebelair.github.io/world-cup-calendar/world-cup.ics
-
+```
 ---
 
 ## 📅 How to Add to Your Application
